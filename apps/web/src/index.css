@@ -1,0 +1,550 @@
+:root {
+  color-scheme: light dark;
+  /* Nimiq design tokens (nimiq-css) aliased to the app's semantic vars. Every component reads
+     these, so this one block re-themes the app. The --colors-* tokens are light-dark() values,
+     so dark mode follows `color-scheme` automatically — no prefers-color-scheme block needed. */
+  --bg: var(--colors-neutral-0);
+  --fg: var(--colors-neutral);
+  --accent: var(--colors-blue);
+  --accent-fg: var(--colors-white);
+  --muted: var(--colors-neutral-800);
+  --error: var(--colors-red);
+  --card: var(--colors-neutral-50);
+  --live: var(--colors-red);
+  /* Nimiq light blue for primary action buttons. */
+  --cta-bg: #0582ca;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Mulish", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.app {
+  max-width: 38rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem calc(2rem + env(safe-area-inset-bottom));
+}
+
+.app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.brand {
+  min-width: 0;
+}
+
+header h1 {
+  margin: 0 0 0.25rem;
+  font-size: clamp(1.8rem, 7vw, 2.4rem);
+}
+
+/* ── Live listener badge (top-right) ──────────────────────────── */
+.live-badge {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.live-badge__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--fg);
+}
+
+.live-badge__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: var(--live);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  box-shadow: 0 0 0 0 rgba(232, 73, 59, 0.7);
+  animation: live-glow 1.6s ease-out infinite;
+}
+
+.live-badge__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #fff;
+}
+
+@keyframes live-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(232, 73, 59, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 0.6rem rgba(232, 73, 59, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 73, 59, 0);
+  }
+}
+
+/* When the live connection drops, grey it out and stop the glow. */
+.live-badge--off .live-badge__live {
+  background: var(--muted);
+  animation: none;
+}
+.live-badge--off .live-badge__count {
+  color: var(--muted);
+}
+
+.tagline {
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+}
+
+/* ── Submit form ─────────────────────────────────────────────── */
+.submit-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+/* Outline/shape/colors come from the .nq-input-box utility (added in SubmitForm). */
+.submit-form input {
+  min-height: 44px;
+  border-radius: 0.5rem; /* rounder than nq-input-box's near-square corners */
+}
+
+.submit-form button {
+  min-height: 44px;
+  border: none;
+  border-radius: 0.625rem;
+  padding: 0.625rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background-color: var(--cta-bg);
+  color: var(--colors-white);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.submit-form button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.submit-form .hint,
+.submit-form .error {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.hint {
+  color: var(--muted);
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+.error {
+  color: var(--error);
+  margin: 0.5rem 0 0;
+}
+
+/* ── Payment panel ───────────────────────────────────────────── */
+.pay-panel {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: var(--card);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.pay-title {
+  margin: 0;
+}
+
+.pay-btn {
+  min-height: 46px;
+  border: none;
+  border-radius: 0.625rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  background-color: var(--cta-bg);
+  color: var(--colors-white);
+  cursor: pointer;
+}
+
+.pay-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.link-btn {
+  justify-self: start;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.link-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Now playing ─────────────────────────────────────────────── */
+.now-playing {
+  margin-top: 1.75rem;
+  padding: 1.25rem;
+  border-radius: 0.875rem;
+  background: var(--card);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+/* Uppercase/letter-spacing/weight/color come from the .nq-label utility (added in NowPlaying). */
+.np-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+}
+
+.now-playing h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.3rem;
+  overflow-wrap: anywhere;
+}
+
+.now-playing .meta {
+  margin: 0 0 0.2rem;
+  color: var(--muted);
+}
+
+.now-playing .meta.sub {
+  font-size: 0.9rem;
+}
+
+.now-playing.idle .idle-text {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+}
+
+.np-card {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.np-cover {
+  position: relative;
+  flex: 0 0 auto;
+  width: 84px;
+  height: 84px;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--muted) 18%, transparent);
+  display: grid;
+  place-items: center;
+}
+
+.np-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.np-cover-placeholder {
+  font-size: 2rem;
+  color: var(--muted);
+}
+
+/* Let the title wrap/ellipsize instead of stretching the flex row. */
+.np-text {
+  min-width: 0;
+}
+
+.np-card--clickable {
+  cursor: pointer;
+  border-radius: 0.5rem;
+}
+
+.np-card--clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.np-details-hint {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+/* ── Radio player ────────────────────────────────────────────── */
+.radio-player {
+  margin-top: 0.75rem;
+}
+
+.tap-to-listen {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 0.625rem;
+  padding: 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  background-color: var(--cta-bg);
+  color: var(--colors-white);
+  cursor: pointer;
+}
+
+.tap-to-listen:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Shared interactions for the Nimiq gradient CTAs. */
+.submit-form button:hover:not(:disabled),
+.pay-btn:hover:not(:disabled),
+.tap-to-listen:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+.submit-form button:active:not(:disabled),
+.pay-btn:active:not(:disabled),
+.tap-to-listen:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.live-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.25rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.live-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--live) 70%, transparent);
+  animation: live-pulse 1.6s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--live) 60%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0.6rem transparent;
+  }
+}
+
+.live-text {
+  color: var(--live);
+}
+
+.mute-btn {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+/* ── Queue ───────────────────────────────────────────────────── */
+.queue {
+  margin-top: 1.75rem;
+}
+
+.queue h3 {
+  margin: 0 0 0.5rem;
+}
+
+.queue .empty {
+  color: var(--muted);
+  margin: 0;
+}
+
+.queue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.queue-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 25%, transparent);
+  border-radius: 0.625rem;
+  background: var(--card);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.queue-item .pos {
+  flex: 0 0 1.5rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+
+.qi-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.qi-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qi-author {
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qi-paid {
+  flex: 0 0 auto;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ── Song details modal ──────────────────────────────────────── */
+.details-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.details {
+  position: relative;
+  width: 100%;
+  max-width: 30rem;
+  max-height: 85vh;
+  overflow: auto;
+  padding: 1.5rem;
+  border-radius: 0.875rem;
+  background: var(--card);
+}
+
+.details-cover {
+  display: block;
+  width: 160px;
+  height: 160px;
+  margin: 0 auto 1rem;
+  border-radius: 0.75rem;
+  object-fit: cover;
+}
+
+.details h3 {
+  margin: 0 1.5rem 1rem 0;
+  overflow-wrap: anywhere;
+}
+
+/* Visual (grey circle + cross) comes from the .nq-close-btn utility; this just positions/sizes it. */
+.details .close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 1.6rem; /* sizes the 1em nq-close-btn (~26px) */
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+
+.details dl {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 0.4rem 0.75rem;
+  margin: 0;
+}
+
+.details dt {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.details a {
+  color: var(--accent);
+}
+
+/* ── Boost ───────────────────────────────────────────────────── */
+.boost {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--muted) 25%, transparent);
+}
+
+.boost-label {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.boost-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Outline/shape from .nq-input-box; keep it compact and override its 128px min-width. */
+.boost-row input {
+  width: 7rem;
+  min-width: 0;
+  min-height: 42px;
+  border-radius: 0.5rem; /* match the rounder URL input */
+}
+
+.boost-unit {
+  color: var(--muted);
+}
+
+.boost-pay {
+  margin-left: auto;
+  min-height: 42px;
+  padding: 0 1.1rem;
+  font-size: 1rem;
+}

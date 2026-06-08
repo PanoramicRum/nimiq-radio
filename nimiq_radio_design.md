@@ -1,0 +1,7 @@
+Product: "Nimiq Radio" — a social, shared internet radio that runs as a Nimiq Pay Mini App (a mobile web app inside the Nimiq Pay crypto wallet). Everyone listening hears the SAME song at the SAME time (a single global, live, synced stream — not personal playback). Users submit a song (by URL) and pay a small amount of NIM (a crypto coin) to add it to a shared queue; paying more NIM moves a song higher in the queue. All NIM contributed is treated as a donation that is staked and later given to a music foundation chosen by the Nimiq community — so paying feels good, not transactional.
+
+Design for MOBILE (≈390×844, portrait, inside a wallet WebView). Touch-first, large 44px+ tap targets, thumb-friendly bottom actions, safe-area padding.
+
+Brand & style: Nimiq's visual language — bold, friendly, premium-fintech-meets-music. Use Nimiq's signature blue radial gradient (deep navy #1F2348 / #0B1733 into vivid sky blues #0582CA → #41A0FF) with warm accent pops (Nimiq gold #E9B213, teal/green #21BCA5). Rounded cards (16–24px radius), soft shadows, pill-shaped buttons, generous spacing. Typeface: Mulish (or a close geometric sans). Provide BOTH light and dark themes; dark is primary (a music app at night vibe). Music motifs: album artwork, animated equalizer bars, a pulsing red "LIVE" dot, subtle waveform. Keep crypto details friendly and minimal (short NIM amounts, truncated NQ… addresses), never intimidating. Accessible contrast, clear hierarchy.
+
+

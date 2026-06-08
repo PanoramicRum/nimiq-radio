@@ -1,0 +1,27 @@
+node_modules/
+dist/
+*.log
+
+# Env — never commit real secrets (the .example template is kept)
+.env
+.env.*
+!.env.example
+
+# Secrets — never commit real cookies (the .example template is kept)
+secrets/cookies.txt
+
+# Temp media (also lives in /tmp or a docker volume in prod)
+tracks/
+covers/
+*.mp3
+*.m4a
+
+# SQLite state
+*.db
+*.db-wal
+*.db-shm
+
+# Caches / OS cruft
+.vite/
+*.tsbuildinfo
+.DS_Store

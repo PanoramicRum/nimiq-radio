@@ -1,0 +1,22 @@
+{
+  "name": "nimiq-radio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@9.15.5",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @radio/server --filter @radio/web dev",
+    "dev:server": "pnpm --filter @radio/server dev",
+    "dev:web": "pnpm --filter @radio/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

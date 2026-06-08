@@ -1,0 +1,8 @@
+**/node_modules
+**/dist
+.git
+docs
+secrets/cookies.txt
+tracks
+**/*.log
+apps/web/dist
