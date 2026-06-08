@@ -14,8 +14,9 @@ services:
       dockerfile: apps/server/Dockerfile
     restart: unless-stopped
     ports:
+      # Bound to localhost — the web tier (and Caddy in prod) front it; never exposed publicly.
       # Override the host port with HOST_PORT=... if 3000 is taken locally.
-      - "${HOST_PORT:-3000}:3000"
+      - "127.0.0.1:${HOST_PORT:-3000}:3000"
     environment:
       HOST: 0.0.0.0
       PORT: "3000"
@@ -75,6 +76,22 @@ services:
     #                      exec pnpm --filter @radio/server start"
     # (Requires iptables in the image. Alternatively enforce egress rules at the
     #  cloud firewall / security-group level, which is cleaner in production.)
+
+  # Production web tier: builds the SPA and serves it with nginx, proxying /api, /static and
+  # /ws to `server` over the compose network. Enabled only with `--profile prod` (local dev
+  # uses the Vite dev server instead). Front it with your reverse proxy (e.g. Caddy):
+  #   radio.example.com { reverse_proxy 127.0.0.1:8780 }
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    profiles: ["prod"]
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8780}:80"
+    depends_on:
+      - server
+    mem_limit: 128m
 
 volumes:
   tracks:
