@@ -22,7 +22,9 @@ services:
       PORT: "3000"
       NODE_ENV: production
       TRACKS_DIR: /tmp/radio-tracks
-      CORS_ORIGIN: "*"
+      # Same-origin through the web tier, so "*" is fine for the prototype. Lock to your
+      # domain in prod by setting CORS_ORIGIN in .env (comma-separated origins allowed).
+      CORS_ORIGIN: "${CORS_ORIGIN:-*}"
       PO_TOKEN_BASE_URL: http://bgutil:4416
       # "default" exposes audio-only m4a (fast); web_safari,tv kept as a fallback chain.
       PLAYER_CLIENT: "${PLAYER_CLIENT:-default,web_safari,tv}"

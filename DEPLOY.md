@@ -33,8 +33,10 @@ cp .env.example .env
 #     WEB_PORT=8780                  # localhost port the reverse proxy targets
 #     CORS_ORIGIN=https://radio.example.com
 
-# 2) (optional) real YouTube cookies for datacenter-IP robustness
-#    paste a Netscape cookies.txt into secrets/cookies.txt (else leave the placeholder)
+# 2) Cookies file (the compose bind-mount needs it to exist; gitignored, so create it
+#    from the template on a fresh clone). Leave it as-is for no cookies, or paste a real
+#    Netscape cookies.txt from a throwaway account for datacenter-IP robustness.
+cp secrets/cookies.txt.example secrets/cookies.txt
 
 # 3) Build + start (server + bgutil + web)
 docker compose --profile prod up -d --build
