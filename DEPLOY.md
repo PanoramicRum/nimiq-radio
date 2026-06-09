@@ -54,6 +54,44 @@ radio.example.com {
 Reload Caddy (`systemctl reload caddy`) — it will obtain a certificate automatically once DNS
 resolves to the server.
 
+## Egress hardening (SSRF defense, scoped to the radio stack)
+
+`yt-dlp` resolves its own DNS and follows redirects, so the in-app host allowlist can't fully stop a
+malicious URL from steering egress at the cloud metadata endpoint (`169.254.169.254` → credential
+theft) or your private network. We block that at the **host** via Docker's `DOCKER-USER` chain,
+scoped to the radio stack's pinned subnet — so it's enforced *outside* the container (a compromise
+can't flush it) and leaves your other apps on the box untouched. No `NET_ADMIN` is granted to any
+container.
+
+```bash
+# From the repo root on the VPS:
+sudo install -m 0755 deploy/radio-egress.sh      /usr/local/sbin/radio-egress.sh
+sudo install -m 0644 deploy/radio-egress.service /etc/systemd/system/radio-egress.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now radio-egress.service        # applies now + on every boot
+```
+
+Verify it took effect (after `docker compose --profile prod up -d`):
+
+```bash
+sudo iptables -L DOCKER-USER -n            # shows: -s 172.28.0.0/24 -> RADIO-EGRESS
+sudo iptables -L RADIO-EGRESS -n           # shows the RETURN/DROP rules
+
+# Metadata + private ranges blocked, public + intra-stack still work:
+docker compose exec server sh -c 'curl -sS -m3 http://169.254.169.254/ ; echo " exit=$?"'   # expect non-zero (blocked)
+docker compose exec server sh -c 'curl -sS -m6 -o /dev/null -w "youtube=%{http_code}\n" https://www.youtube.com'  # expect 200/30x
+docker compose exec server sh -c 'curl -sS -m3 -o /dev/null -w "bgutil=%{http_code}\n" http://bgutil:4416/ping'   # expect a response (intra-stack allowed)
+```
+
+Notes:
+- The rules target `172.28.0.0/24` (the `radionet` subnet in `docker-compose.yml`). If you change
+  that subnet — or `docker compose up` reports an overlap and you pick another — update `SUBNET` in
+  `deploy/radio-egress.sh` to match.
+- The radio stack is **IPv4-only** by design: its containers never originate IPv6, so there's no v6
+  egress surface to filter even though the host has IPv6 (public IPv6 clients reach Caddy on the
+  host, which proxies to the container over IPv4 loopback). The script's v6 section is a no-op unless
+  you deliberately enable IPv6 on `radionet`.
+
 ## Updating
 
 ```bash

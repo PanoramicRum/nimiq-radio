@@ -7,6 +7,8 @@ services:
     # Internal only; the server reaches it at http://bgutil:4416.
     expose:
       - "4416"
+    networks:
+      - radionet
 
   server:
     build:
@@ -57,6 +59,8 @@ services:
       - tracks:/tmp/radio-tracks
     depends_on:
       - bgutil
+    networks:
+      - radionet
 
     # Resource caps (Phase 6). The download worker is bounded; these stop a runaway
     # yt-dlp/ffmpeg or a fork-bomb from taking down the host.
@@ -64,20 +68,14 @@ services:
     cpus: 1.5
     pids_limit: 256
 
-    # ── SSRF egress hardening (plan: bring forward to Phase 1) ──────────────────
+    # ── SSRF egress hardening ───────────────────────────────────────────────────
     # yt-dlp does its own DNS/redirect resolution, so the in-app host allowlist is
-    # not enough on its own. On the real VM, block the container's egress to private
-    # ranges and the cloud metadata endpoint. This needs host-level capability and
-    # is environment-specific, so it's documented here rather than enabled by default:
-    #
-    #   cap_add: ["NET_ADMIN"]
-    #   entrypoint: sh -c "iptables -A OUTPUT -d 169.254.169.254 -j DROP &&
-    #                      iptables -A OUTPUT -d 10.0.0.0/8 -j DROP &&
-    #                      iptables -A OUTPUT -d 172.16.0.0/12 -j DROP &&
-    #                      iptables -A OUTPUT -d 192.168.0.0/16 -j DROP &&
-    #                      exec pnpm --filter @radio/server start"
-    # (Requires iptables in the image. Alternatively enforce egress rules at the
-    #  cloud firewall / security-group level, which is cleaner in production.)
+    # not enough on its own: a malicious URL could steer egress at the cloud metadata
+    # endpoint (169.254.169.254 -> credential theft) or your private network.
+    # We enforce this at the HOST level, scoped to the `radionet` subnet below, via
+    # Docker's DOCKER-USER chain — NOT with in-container iptables + NET_ADMIN, which
+    # a compromised container could flush and which would risk neighbours on a shared
+    # host. See deploy/radio-egress.sh + deploy/radio-egress.service and DEPLOY.md.
 
   # Production web tier: builds the SPA and serves it with nginx, proxying /api, /static and
   # /ws to `server` over the compose network. Enabled only with `--profile prod` (local dev
@@ -93,7 +91,23 @@ services:
       - "127.0.0.1:${WEB_PORT:-8780}:80"
     depends_on:
       - server
+    networks:
+      - radionet
     mem_limit: 128m
 
 volumes:
   tracks:
+
+networks:
+  # Dedicated bridge with a PINNED subnet so the host egress rules in
+  # deploy/radio-egress.sh can target exactly this stack (and nothing else).
+  # Intentionally IPv4-only: the radio containers never originate IPv6, so there
+  # is no IPv6 egress surface to filter (public IPv6 reachability is handled by
+  # your host reverse proxy, not the containers). If `docker compose up` reports a
+  # subnet overlap with another project, pick a free /24 and update SUBNET in
+  # deploy/radio-egress.sh to match.
+  radionet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24

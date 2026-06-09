@@ -1,0 +1,19 @@
+# Re-applies the Nimiq Radio container egress rules on every boot, after the
+# Docker daemon is up (so the DOCKER-USER chain exists). Install:
+#
+#   sudo install -m 0755 deploy/radio-egress.sh      /usr/local/sbin/radio-egress.sh
+#   sudo install -m 0644 deploy/radio-egress.service /etc/systemd/system/radio-egress.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now radio-egress.service
+[Unit]
+Description=Nimiq Radio container egress hardening (DOCKER-USER rules)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/radio-egress.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
