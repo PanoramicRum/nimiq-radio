@@ -50,13 +50,37 @@ header h1 {
   color: light-dark(var(--nimiq-blue, #1f2348), var(--colors-neutral));
 }
 
+/* Top-right cluster: live badge + theme toggle. */
+.header-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.35rem;
+}
+
+.theme-toggle {
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: 1.2rem;
+  line-height: 0;
+  padding: 0.25rem;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.theme-toggle:hover {
+  color: var(--accent);
+}
+
 /* ── Live listener badge (top-right) ──────────────────────────── */
 .live-badge {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.35rem;
 }
 
 .live-badge__count {
@@ -484,7 +508,10 @@ header h1 {
   width: 100%;
   max-width: 30rem;
   max-height: 85vh;
-  overflow: auto;
+  /* Vertical scroll only — never sideways (a long source URL used to widen the panel and square
+     off the bottom corners). */
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 1.5rem;
   border-radius: 0.875rem;
   background: var(--card);
@@ -517,7 +544,8 @@ header h1 {
 
 .details dl {
   display: grid;
-  grid-template-columns: 8rem 1fr;
+  /* minmax(0, 1fr) lets the value column shrink so long values wrap instead of widening the panel. */
+  grid-template-columns: 8rem minmax(0, 1fr);
   gap: 0.4rem 0.75rem;
   margin: 0;
 }
@@ -529,6 +557,7 @@ header h1 {
 
 .details dd {
   margin: 0;
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 

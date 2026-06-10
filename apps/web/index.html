@@ -7,6 +7,13 @@
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#232b44" media="(prefers-color-scheme: dark)" />
     <title>Nimiq Radio</title>
+    <!-- Apply a saved light/dark choice before paint to avoid a flash (see ThemeToggle). -->
+    <script>
+      try {
+        var t = localStorage.getItem("nimiq-radio-theme");
+        if (t === "light" || t === "dark") document.documentElement.style.colorScheme = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

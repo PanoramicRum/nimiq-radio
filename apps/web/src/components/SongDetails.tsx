@@ -107,16 +107,6 @@ export function SongDetails({
           <dd>{item.album ?? "—"}</dd>
           <dt>Duration</dt>
           <dd>{typeof item.duration === "number" ? formatDuration(item.duration) : "—"}</dd>
-          <dt>Source</dt>
-          <dd>
-            {item.isRadio ? (
-              "Creative Commons (CC0)"
-            ) : (
-              <a href={item.sourceUrl} target="_blank" rel="noreferrer">
-                {item.sourceUrl}
-              </a>
-            )}
-          </dd>
           <dt>Submitted by</dt>
           <dd>{item.isRadio ? "The radio" : item.submittedBy ?? "—"}</dd>
           <dt>Paid</dt>

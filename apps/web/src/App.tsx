@@ -6,6 +6,7 @@ import { Queue } from "./components/Queue";
 import { RadioPlayer } from "./components/RadioPlayer";
 import { SongDetails } from "./components/SongDetails";
 import { SubmitForm } from "./components/SubmitForm";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { useConfig } from "./hooks/useConfig";
 import { useRadioState } from "./hooks/useRadioState";
 
@@ -20,7 +21,10 @@ export function App() {
         <div className="brand">
           <h1>Nimiq Radio</h1>
         </div>
-        <LiveBadge listeners={state?.listeners ?? 0} connected={connected} />
+        <div className="header-actions">
+          <LiveBadge listeners={state?.listeners ?? 0} connected={connected} />
+          <ThemeToggle />
+        </div>
       </header>
       <p className="tagline">Add a song, everyone will hear it with you</p>
 
