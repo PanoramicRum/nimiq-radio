@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, readFileSync, statSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -133,10 +133,36 @@ export class YtDlpDownloader implements Downloader {
     }
     // Cookies from a throwaway account — only if the file holds real entries
     // (a comment-only placeholder is treated as "no cookies").
-    if (this.cfg.COOKIES_FILE && hasCookieData(this.cfg.COOKIES_FILE)) {
-      args.push("--cookies", this.cfg.COOKIES_FILE);
+    const cookies = this.writableCookiesPath();
+    if (cookies) {
+      args.push("--cookies", cookies);
     }
     return args;
+  }
+
+  /**
+   * yt-dlp rewrites the cookie jar back to the --cookies path after every YouTube session, so the
+   * file must be writable — but the configured COOKIES_FILE is a read-only bind mount (passing it
+   * directly fails with EROFS). We stage a writable copy in TRACKS_DIR (created by the app user, so
+   * it owns it) and let yt-dlp rewrite that, re-copying whenever the source is updated (a fresh
+   * upload has a newer mtime). Returns the path to pass to --cookies, or null when no real cookies
+   * are configured. The copy lives as a dotfile so it's neither served nor swept by cleanup.
+   */
+  private writableCookiesPath(): string | null {
+    const src = this.cfg.COOKIES_FILE;
+    if (!src || !hasCookieData(src)) return null;
+    const dst = path.join(this.cfg.TRACKS_DIR, ".yt-cookies.txt");
+    try {
+      const fresh = existsSync(dst) && statSync(dst).mtimeMs >= statSync(src).mtimeMs;
+      if (!fresh) {
+        copyFileSync(src, dst);
+        chmodSync(dst, 0o600);
+      }
+      return dst;
+    } catch (err) {
+      this.log.warn({ err: err instanceof Error ? err.message : String(err) }, "cookies: could not stage a writable copy");
+      return existsSync(dst) ? dst : null;
+    }
   }
 
   private run(args: string[], signal?: AbortSignal): Promise<{ stdout: string; stderr: string }> {
