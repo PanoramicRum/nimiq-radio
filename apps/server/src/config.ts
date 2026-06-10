@@ -73,7 +73,9 @@ const EnvSchema = z.object({
   COVER_MAX_BYTES: z.coerce.number().int().positive().default(5 * 1024 * 1024),
   // Content gate: reject non-songs before downloading.
   CONTENT_GATE_ENABLED: boolFromEnv(true),
-  GATE_REQUIRE_MUSIC_CATEGORY: boolFromEnv(true),
+  // Off by default: YouTube miscategorizes many legit songs (e.g. "People & Blogs"), so the
+  // category is too blunt a filter. Length + not-live still gate; AcoustID identifies the song.
+  GATE_REQUIRE_MUSIC_CATEGORY: boolFromEnv(false),
   MIN_SONG_SEC: z.coerce.number().int().positive().default(45),
   MAX_SONG_SEC: z.coerce.number().int().positive().default(1200), // 20 min
 
