@@ -31,7 +31,7 @@ export function SongDetails({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const canBoost = !!config?.paymentsEnabled && position !== null;
+  const canBoost = !!config?.paymentsEnabled && position !== null && !item.isRadio;
 
   async function handleBoost() {
     if (boosting) return;
@@ -109,12 +109,16 @@ export function SongDetails({
           <dd>{typeof item.duration === "number" ? formatDuration(item.duration) : "—"}</dd>
           <dt>Source</dt>
           <dd>
-            <a href={item.sourceUrl} target="_blank" rel="noreferrer">
-              {item.sourceUrl}
-            </a>
+            {item.isRadio ? (
+              "Creative Commons (CC0)"
+            ) : (
+              <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                {item.sourceUrl}
+              </a>
+            )}
           </dd>
           <dt>Submitted by</dt>
-          <dd>{item.submittedBy ?? "—"}</dd>
+          <dd>{item.isRadio ? "The radio" : item.submittedBy ?? "—"}</dd>
           <dt>Paid</dt>
           <dd>{formatPaid(item.amountPaid)}</dd>
           <dt>Queue position</dt>

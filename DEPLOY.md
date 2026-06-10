@@ -40,7 +40,16 @@ cp secrets/cookies.txt.example secrets/cookies.txt
 
 # 3) Build + start (server + bgutil + web)
 docker compose --profile prod up -d --build
+
+# 4) Populate the always-on Creative-Commons filler library (public-domain CC0 music the radio
+#    plays whenever no user song is queued). Idempotent; re-run after editing the manifest.
+#    Uses the server image (node + ffmpeg), writes into the tracks volume — no host deps needed.
+docker compose --profile init run --rm filler-fetch
 ```
+
+The radio is silent until step 4 runs (it then plays the CC0 library, shown as "Added by the
+radio", until a user submits a song). To curate the library, edit
+`apps/server/filler/manifest.json` (add tracks / genres) and re-run step 4.
 
 Then point your reverse proxy at the web container. Caddy example (`/etc/caddy/Caddyfile`):
 
@@ -97,6 +106,8 @@ Notes:
 ```bash
 git pull
 docker compose --profile prod up -d --build
+# If apps/server/filler/manifest.json changed, refresh the filler library too:
+docker compose --profile init run --rm filler-fetch
 ```
 
 ## Notes

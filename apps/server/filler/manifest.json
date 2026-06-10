@@ -1,0 +1,27 @@
+{
+  "source": {
+    "type": "archive.org",
+    "item": "freepd",
+    "license": "CC0-1.0",
+    "_note": "Public-domain (CC0) filler from the FreePD catalog mirrored at archive.org/details/freepd. No attribution required. Starter set (ambient + chill) — expand by adding entries here and re-running deploy/fetch-filler.sh. `src` is matched by basename against the archive.org item; durations are best-effort and re-measured via ffprobe at fetch time."
+  },
+  "genreOrder": ["ambient", "chill"],
+  "tracks": [
+    { "id": "lib-ambient-zyow", "file": "lib-ambient-zyow.mp3", "src": "Ambient A Zyow.mp3", "title": "Zyow", "genre": "ambient", "duration": 119 },
+    { "id": "lib-ambient-eastern-thought", "file": "lib-ambient-eastern-thought.mp3", "src": "Ambient B Eastern Thought.mp3", "title": "Eastern Thought", "genre": "ambient", "duration": 195 },
+    { "id": "lib-ambient-motion", "file": "lib-ambient-motion.mp3", "src": "Ambient C Motion.mp3", "title": "Motion", "genre": "ambient", "duration": 210 },
+    { "id": "lib-ambient-singing-bells", "file": "lib-ambient-singing-bells.mp3", "src": "Ambient E Singing Bells.mp3", "title": "Singing Bells", "genre": "ambient", "duration": 163 },
+    { "id": "lib-ambient-glowing", "file": "lib-ambient-glowing.mp3", "src": "Ambient G Glowing.mp3", "title": "Glowing", "genre": "ambient", "duration": 158 },
+    { "id": "lib-ambient-spaced-out", "file": "lib-ambient-spaced-out.mp3", "src": "Ambient H Spaced Out.mp3", "title": "Spaced Out", "genre": "ambient", "duration": 114 },
+    { "id": "lib-ambient-tibet-groove", "file": "lib-ambient-tibet-groove.mp3", "src": "Ambient I Tibet Groove.mp3", "title": "Tibet Groove", "genre": "ambient", "duration": 140 },
+    { "id": "lib-ambient-slow-go", "file": "lib-ambient-slow-go.mp3", "src": "Ambient K Slow Go.mp3", "title": "Slow Go", "genre": "ambient", "duration": 172 },
+    { "id": "lib-chill-a", "file": "lib-chill-a.mp3", "src": "Chill A.mp3", "title": "Chill", "genre": "chill", "duration": 176 },
+    { "id": "lib-chill-air", "file": "lib-chill-air.mp3", "src": "Chill Air.mp3", "title": "Air", "genre": "chill", "duration": 211 },
+    { "id": "lib-chill-beat", "file": "lib-chill-beat.mp3", "src": "Chill Beat.mp3", "title": "Chill Beat", "genre": "chill", "duration": 149 },
+    { "id": "lib-chill-bells", "file": "lib-chill-bells.mp3", "src": "Chill Bells.mp3", "title": "Chill Bells", "genre": "chill", "duration": 196 },
+    { "id": "lib-chill-breathe", "file": "lib-chill-breathe.mp3", "src": "Chill Breathe.mp3", "title": "Breathe", "genre": "chill", "duration": 203 },
+    { "id": "lib-chill-deep", "file": "lib-chill-deep.mp3", "src": "Chill Deep.mp3", "title": "Deep Chill", "genre": "chill", "duration": 169 },
+    { "id": "lib-chill-float", "file": "lib-chill-float.mp3", "src": "Chill Float.mp3", "title": "Float", "genre": "chill", "duration": 206 },
+    { "id": "lib-chill-china-love", "file": "lib-chill-china-love.mp3", "src": "Chill China Love.mp3", "title": "China Love", "genre": "chill", "duration": 141 }
+  ]
+}

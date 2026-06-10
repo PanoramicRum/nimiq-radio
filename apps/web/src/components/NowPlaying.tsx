@@ -52,8 +52,14 @@ export function NowPlaying({ current, onSelect }: { current: QueueItem | null; o
             </p>
           )}
           <p className="meta sub">
-            {current.submittedBy ? `by ${shortAddress(current.submittedBy)} · ` : ""}
-            {formatPaid(current.amountPaid)}
+            {current.isRadio ? (
+              "Added by the radio"
+            ) : (
+              <>
+                {current.submittedBy ? `by ${shortAddress(current.submittedBy)} · ` : ""}
+                {formatPaid(current.amountPaid)}
+              </>
+            )}
             {typeof current.duration === "number" ? ` · ${formatDuration(current.duration)}` : ""}
           </p>
           {open && <span className="np-details-hint">Tap for details <NqIcon name="chevron-right" /></span>}

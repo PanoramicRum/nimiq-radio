@@ -14,6 +14,7 @@ import { openDb } from "./db";
 import { RadioEngine } from "./engine/RadioEngine";
 import { SqliteStore } from "./engine/SqliteStore";
 import { InMemoryStore, type RadioStore } from "./engine/store";
+import { FillerLibrary } from "./filler/FillerLibrary";
 import { startCleanup } from "./fs/cleanup";
 import { isAudioFilename } from "./fs/trackStore";
 import { MediaWorker } from "./media/worker";
@@ -43,6 +44,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Ensure the tracks dir + covers subdir exist before @fastify/static reads their roots.
   await mkdir(config.TRACKS_DIR, { recursive: true });
   await mkdir(path.join(config.TRACKS_DIR, "covers"), { recursive: true });
+  if (config.FILLER_ENABLED) await mkdir(config.fillerDir, { recursive: true });
 
   // Security headers. CSP is left off (this backend serves JSON + audio, not HTML; the SPA
   // host sets its own CSP incl. frame-ancestors for Nimiq Pay). CORP is cross-origin so the
@@ -96,6 +98,24 @@ export async function buildApp(): Promise<FastifyInstance> {
     allowedPath: (pathName) => /\.(jpg|png|webp)$/i.test(pathName),
   });
 
+  // Creative-Commons radio filler (Phase 8). Curated CC0 audio lives in a subdir of TRACKS_DIR
+  // that the cleanup sweep never recurses into, so these files are never TTL/LRU-evicted (no
+  // pinned-set entry needed). acceptRanges is required for <audio> seeking + drift correction.
+  if (config.FILLER_ENABLED) {
+    await app.register(fastifyStatic, {
+      root: path.resolve(config.fillerDir),
+      prefix: "/static/library/",
+      decorateReply: false,
+      acceptRanges: true,
+      cacheControl: true,
+      maxAge: "365d",
+      immutable: true,
+      index: false,
+      list: false,
+      allowedPath: (pathName) => isAudioFilename(pathName),
+    });
+  }
+
   // Persistence: SQLite when DB_PATH is set (radio survives restart + durable replay guard),
   // otherwise pure in-memory.
   const db = config.dbPath ? openDb(config.dbPath) : undefined;
@@ -103,7 +123,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.log.info(db ? { dbPath: config.dbPath } : {}, db ? "persistence ENABLED (SQLite)" : "persistence DISABLED (in-memory)");
 
   const worker = new MediaWorker(config, app.log);
-  const engine = new RadioEngine(store, app.log);
+  // Always-on CC0 filler so the radio is never silent (Phase 8). When disabled or empty, the
+  // engine simply falls back to idle, exactly as before.
+  const fillerSource = config.FILLER_ENABLED
+    ? await FillerLibrary.load({ dir: config.fillerDir, manifestPath: config.fillerManifestPath, log: app.log })
+    : undefined;
+  const engine = new RadioEngine(store, app.log, fillerSource);
   const registry = new PrepareRegistry();
   const boostRegistry = new BoostRegistry();
   const payments = new PaymentsStore(db, app.log);
@@ -148,6 +173,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerPrepareRoute(app, { worker, engine, registry });
   registerSubmitRoute(app, { engine, registry, verifier, payments, worker });
   registerBoostRoutes(app, { engine, registry: boostRegistry, verifier, payments });
+
+  // Kick off filler now that everything is wired (no-op if already playing or no filler).
+  engine.ensurePlaying();
 
   return app;
 }

@@ -95,6 +95,27 @@ services:
       - radionet
     mem_limit: 128m
 
+  # One-shot: download the public-domain (CC0) filler library into the tracks volume so the radio
+  # always has something to play. Reuses the server image (it already has node + ffmpeg + curl).
+  # Run once after `up` (and again whenever you edit apps/server/filler/manifest.json):
+  #   docker compose --profile init run --rm filler-fetch
+  filler-fetch:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    profiles: ["init"]
+    restart: "no"
+    environment:
+      FILLER_DIR: /tmp/radio-tracks/library
+      FILLER_MANIFEST: /app/apps/server/filler/manifest.json
+    entrypoint: ["node"]
+    command: ["/deploy/fetch-filler.mjs"]
+    volumes:
+      - ./deploy:/deploy:ro
+      - tracks:/tmp/radio-tracks
+    networks:
+      - radionet
+
 volumes:
   tracks:
 

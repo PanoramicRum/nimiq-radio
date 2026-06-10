@@ -24,6 +24,16 @@ If you operate this software for anyone other than yourself, **you** are respons
 A safer path for a real launch is to swap the media-source layer (the `SourceValidator` /
 `Downloader` seam) to a licensed catalog.
 
+### Radio filler ("Added by the radio")
+
+When no user song is queued, the radio plays a built-in filler library shown as **"Added by the
+radio."** The bundled starter set is **public-domain (CC0) music** from the FreePD catalog
+(mirrored at `archive.org/details/freepd`), which carries **no attribution requirement and is
+cleared for commercial use** — chosen deliberately because this instance accepts payments. The
+audio is not committed to the repo; it is fetched at deploy time (see `DEPLOY.md`). If you add
+your own tracks to `apps/server/filler/manifest.json`, ensure each is CC0 / public-domain or
+otherwise licensed for commercial streaming (avoid NonCommercial-only licenses).
+
 ## Temporary files & retention
 
 Downloaded audio is stored temporarily and deleted automatically: files age out after a TTL

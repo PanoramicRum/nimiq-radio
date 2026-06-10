@@ -13,10 +13,13 @@
     "dev:web": "pnpm --filter @radio/web dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up"
   },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.9"
   }
 }

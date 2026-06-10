@@ -19,6 +19,12 @@ export type QueueItem = {
   duration?: number;
   /** Nimiq address that paid — derived from chain, never trusted from the client (Phase 3+). */
   submittedBy?: string;
+  /**
+   * True for server-owned Creative-Commons filler tracks ("Added by the radio").
+   * Absent ⟺ a user song. Server-minted only — never accepted from the client — so it
+   * cleanly distinguishes filler from free-mode user songs (which also lack submittedBy).
+   */
+  isRadio?: boolean;
   /** Total Luna paid across the initial submit + all boosts. 0 until payments (Phase 3). */
   amountPaid: number;
   /** ISO timestamp. */

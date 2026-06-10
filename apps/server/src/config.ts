@@ -76,6 +76,13 @@ const EnvSchema = z.object({
   GATE_REQUIRE_MUSIC_CATEGORY: boolFromEnv(true),
   MIN_SONG_SEC: z.coerce.number().int().positive().default(45),
   MAX_SONG_SEC: z.coerce.number().int().positive().default(1200), // 20 min
+
+  // ── Always-on Creative-Commons filler (Phase 8) ──
+  // The radio plays public-domain (CC0) filler whenever no user song is queued, so it is
+  // never silent. Audio is fetched into FILLER_DIR by deploy/fetch-filler.sh (not committed).
+  FILLER_ENABLED: boolFromEnv(true),
+  FILLER_DIR: z.string().optional(), // audio dir; default <TRACKS_DIR>/library
+  FILLER_MANIFEST: z.string().optional(), // manifest path; default apps/server/filler/manifest.json
 });
 
 const DEFAULT_RPC: Record<"mainnet" | "testnet", string> = {
@@ -96,6 +103,10 @@ export type Config = z.infer<typeof EnvSchema> & {
   dbPath: string | null;
   /** True when an AcoustID key is configured (fingerprint metadata enabled). */
   taggerEnabled: boolean;
+  /** Directory holding downloaded CC0 filler audio (default <TRACKS_DIR>/library). */
+  fillerDir: string;
+  /** Override path to the filler manifest JSON, or null to use the built-in default. */
+  fillerManifestPath: string | null;
 };
 
 export function loadConfig(): Config {
@@ -136,6 +147,8 @@ export function loadConfig(): Config {
     priceLuna: Math.round(env.PRICE_NIM * LUNA_PER_NIM),
     dbPath,
     taggerEnabled: env.ACOUSTID_API_KEY !== undefined,
+    fillerDir: emptyToUndef(env.FILLER_DIR) ?? `${env.TRACKS_DIR}/library`,
+    fillerManifestPath: emptyToUndef(env.FILLER_MANIFEST) ?? null,
   };
 }
 
