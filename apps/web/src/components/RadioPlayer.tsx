@@ -32,6 +32,11 @@ export function RadioPlayer({
   const audioRef = useRef<HTMLAudioElement>(null);
   const [started, setStarted] = useState(false);
   const [muted, setMuted] = useState(false);
+  // Reflects whether the <audio> is actually producing sound. Driven by the element's play/pause
+  // events so we can offer a "play" control after the OS/another app steals audio focus (common in
+  // the mobile WebView): there's no "pause" button — a live radio is either playing or you tap to
+  // (re)join it.
+  const [playing, setPlaying] = useState(false);
 
   // Latest sync inputs in refs so the interval + listeners read fresh values.
   const startedRef = useRef(false);
@@ -105,6 +110,38 @@ export function RadioPlayer({
     return () => window.clearInterval(id);
   }, []);
 
+  // Track real playback so the UI can offer a play control when the stream gets paused (e.g. another
+  // app grabbed audio focus). The pause→false transition is debounced because swapping the <audio>
+  // src on a track change fires a momentary 'pause' we don't want to surface.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    let pauseTimer: number | undefined;
+    const clearPauseTimer = () => {
+      if (pauseTimer !== undefined) {
+        window.clearTimeout(pauseTimer);
+        pauseTimer = undefined;
+      }
+    };
+    const onPlay = () => {
+      clearPauseTimer();
+      setPlaying(true);
+    };
+    const onPause = () => {
+      clearPauseTimer();
+      pauseTimer = window.setTimeout(() => setPlaying(false), 400);
+    };
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("playing", onPlay);
+    audio.addEventListener("pause", onPause);
+    return () => {
+      clearPauseTimer();
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("playing", onPlay);
+      audio.removeEventListener("pause", onPause);
+    };
+  }, []);
+
   // Re-align immediately when the tab/app becomes visible again.
   useEffect(() => {
     const onVisible = () => {
@@ -128,6 +165,21 @@ export function RadioPlayer({
     }
   }
 
+  // Rejoin the live stream after it was paused (e.g. another app took audio focus). Runs from a
+  // click, so it satisfies the autoplay-gesture policy; hard-seeks to "now" first so we never
+  // resume where it stopped.
+  async function handleResume() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    startedRef.current = true;
+    hardSeek();
+    try {
+      await audio.play();
+    } catch {
+      /* user can tap again */
+    }
+  }
+
   function toggleMute() {
     const audio = audioRef.current;
     if (!audio) return;
@@ -143,13 +195,35 @@ export function RadioPlayer({
         <TapToListen onTap={handleTap} disabled={!current} />
       ) : (
         <div className="live-bar">
-          <span className="live-dot" aria-hidden />
-          <span className="live-text">{current ? "LIVE" : "waiting for the next song…"}</span>
-          <button className="mute-btn" onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"}>
-            <NqIcon name={muted ? "volume-x" : "volume-2"} />
-          </button>
+          <span className={playing ? "live-dot" : "live-dot paused"} aria-hidden />
+          <span className={playing ? "live-text" : "live-text paused"}>
+            {current ? (playing ? "LIVE" : "PAUSED") : "waiting for the next song…"}
+          </span>
+          {current && !playing ? (
+            <button className="player-btn" onClick={handleResume} aria-label="Play">
+              <PlayGlyph />
+            </button>
+          ) : (
+            <button
+              className="player-btn"
+              onClick={toggleMute}
+              aria-label={muted ? "Unmute" : "Mute"}
+              disabled={!current}
+            >
+              <NqIcon name={muted ? "volume-x" : "volume-2"} />
+            </button>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+/** Inline play triangle — the nimiq icon set has no play/pause glyph. Sizes/colors like NqIcon. */
+function PlayGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden focusable="false">
+      <path d="M8 5v14l11-7z" />
+    </svg>
   );
 }

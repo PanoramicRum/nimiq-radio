@@ -46,6 +46,8 @@ body {
 header h1 {
   margin: 0 0 0.25rem;
   font-size: clamp(1.8rem, 7vw, 2.4rem);
+  /* Nimiq Blue brand navy in light mode; stays readable (white) in dark mode. */
+  color: light-dark(var(--nimiq-blue, #1f2348), var(--colors-neutral));
 }
 
 /* ── Live listener badge (top-right) ──────────────────────────── */
@@ -110,8 +112,11 @@ header h1 {
 }
 
 .tagline {
-  margin: 0 0 1.5rem;
+  margin: 0.15rem 0 1.5rem;
   color: var(--muted);
+  /* Keep it to a single line on phones: shrink with the viewport, cap at 1rem on desktop. */
+  font-size: min(1rem, 3.6vw);
+  white-space: nowrap;
 }
 
 /* ── Submit form ─────────────────────────────────────────────── */
@@ -365,12 +370,31 @@ header h1 {
   color: var(--live);
 }
 
-.mute-btn {
+/* Paused (e.g. audio focus lost): stop the pulse and drop the "live" red. */
+.live-dot.paused {
+  animation: none;
+  background: var(--muted);
+  box-shadow: none;
+}
+
+.live-text.paused {
+  color: var(--muted);
+}
+
+.player-btn {
   margin-left: auto;
   border: none;
   background: transparent;
+  color: inherit;
   font-size: 1.2rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.player-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* ── Queue ───────────────────────────────────────────────────── */

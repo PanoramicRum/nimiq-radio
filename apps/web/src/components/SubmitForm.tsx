@@ -125,7 +125,9 @@ export function SubmitForm({ config, onSubmitted }: { config: AppConfig | null; 
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={busy || pending !== null}
-          required
+          // No `required`: an empty box is a valid resting state (submission is guarded in JS and
+          // the button is disabled when blank). `required` would make the cleared-after-submit
+          // field `:user-invalid`, which nimiq-css renders with an orange placeholder.
         />
         <button type="submit" disabled={busy || pending !== null || !url.trim()}>
           {addLabel}
@@ -135,7 +137,7 @@ export function SubmitForm({ config, onSubmitted }: { config: AppConfig | null; 
       {config?.paymentsEnabled && !pending && (
         <p className="hint">Adding a song costs {priceNim} NIM ({config.network}).</p>
       )}
-      {phase === "preparing" && <p className="hint">Downloading and converting on the server — a few seconds.</p>}
+      {phase === "preparing" && <p className="hint">Preparing your song…</p>}
 
       {pending && (
         <div className="pay-panel">

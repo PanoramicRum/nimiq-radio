@@ -19,10 +19,10 @@ export function App() {
       <header className="app-header">
         <div className="brand">
           <h1>Nimiq Radio</h1>
-          <p className="tagline">One shared queue — everyone hears the same song.</p>
         </div>
         <LiveBadge listeners={state?.listeners ?? 0} connected={connected} />
       </header>
+      <p className="tagline">Add a song, everyone will hear it with you</p>
 
       <SubmitForm config={config} onSubmitted={refresh} />
 
