@@ -11,9 +11,13 @@ the web container's localhost port. Same-origin, so the SPA uses relative URLs a
 
 ## Prerequisites
 
-- Docker + Docker Compose v2.
-- A DNS `A`/`AAAA` record for your domain → the server's public IP.
-- A reverse proxy with automatic HTTPS (examples below assume Caddy).
+- **Docker Engine + Compose v2.** Fresh Ubuntu/Debian box: `curl -fsSL https://get.docker.com | sh`.
+- **DNS**: an `A` (and `AAAA` for IPv6) record for your domain → the server's public IP, in place
+  *before* the reverse proxy first starts (Caddy needs it resolving to issue the TLS certificate).
+- **Host firewall** allowing only `22`, `80`, `443`. The stack binds `127.0.0.1` only, so nothing
+  else is public — UFW is enough: `ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp && ufw enable`.
+- **A reverse proxy with automatic HTTPS** — examples assume **host-level Caddy**, the natural single
+  TLS terminator when the box will host several mini-apps (add one site block per app).
 
 ## Steps
 
@@ -31,7 +35,7 @@ cp .env.example .env
 #     MIN_CONFIRMATIONS=10
 #     ACOUSTID_API_KEY=...           # https://acoustid.org/new-application
 #     WEB_PORT=8780                  # localhost port the reverse proxy targets
-#     CORS_ORIGIN=https://radio.example.com
+#     CORS_ORIGIN=https://radio.nimiqapps.com
 
 # 2) Cookies file (the compose bind-mount needs it to exist; gitignored, so create it
 #    from the template on a fresh clone). Leave it as-is for no cookies, or paste a real
@@ -54,7 +58,7 @@ radio", until a user submits a song). To curate the library, edit
 Then point your reverse proxy at the web container. Caddy example (`/etc/caddy/Caddyfile`):
 
 ```
-radio.example.com {
+radio.nimiqapps.com {
     encode zstd gzip
     reverse_proxy 127.0.0.1:8780
 }
@@ -73,7 +77,12 @@ can't flush it) and leaves your other apps on the box untouched. No `NET_ADMIN` 
 container.
 
 ```bash
-# From the repo root on the VPS:
+# From the repo root on the VPS. First confirm iptables and Docker share a backend (modern Ubuntu
+# uses nft for both). "OK" -> continue; "WARN" -> see the iptables-backend note below.
+sudo iptables -L DOCKER-USER -n >/dev/null 2>&1 \
+  && echo "OK: iptables sees Docker's DOCKER-USER chain" \
+  || echo "WARN: iptables/Docker backend mismatch (nft vs legacy)"
+
 sudo install -m 0755 deploy/radio-egress.sh      /usr/local/sbin/radio-egress.sh
 sudo install -m 0644 deploy/radio-egress.service /etc/systemd/system/radio-egress.service
 sudo systemctl daemon-reload
@@ -95,7 +104,16 @@ docker compose exec server sh -c 'curl -sS -m3 -o /dev/null -w "bgutil=%{http_co
 Notes:
 - The rules target `172.28.0.0/24` (the `radionet` subnet in `docker-compose.yml`). If you change
   that subnet — or `docker compose up` reports an overlap and you pick another — update `SUBNET` in
-  `deploy/radio-egress.sh` to match.
+  `deploy/radio-egress.sh` to match. Verify the live subnet with:
+  `docker network inspect "$(docker network ls --format '{{.Name}}' | grep radionet)" -f '{{(index .IPAM.Config 0).Subnet}}'`.
+- **iptables backend (nft vs legacy):** modern Ubuntu ships `iptables` as the nft shim and current
+  Docker uses nft too, so they match. If the check above printed `WARN`, Docker is on a different
+  backend than your `iptables` command — point `iptables` at the one Docker uses
+  (`sudo update-alternatives --config iptables`, pick the matching legacy/nft variant) and re-run.
+  Otherwise the rules write to a table that's never consulted (a silent no-op).
+- **Re-apply after recreating the network:** the systemd unit re-applies on every boot, but if you
+  `docker compose down && up` (which recreates `radionet`) without rebooting, run
+  `sudo systemctl restart radio-egress` afterward.
 - The radio stack is **IPv4-only** by design: its containers never originate IPv6, so there's no v6
   egress surface to filter even though the host has IPv6 (public IPv6 clients reach Caddy on the
   host, which proxies to the container over IPv4 loopback). The script's v6 section is a no-op unless
