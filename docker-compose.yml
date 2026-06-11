@@ -93,7 +93,7 @@ services:
       - server
     networks:
       - radionet
-    mem_limit: 128m
+    mem_limit: 256m
 
   # One-shot: download the public-domain (CC0) filler library into the tracks volume so the radio
   # always has something to play. Reuses the server image (it already has node + ffmpeg + curl).

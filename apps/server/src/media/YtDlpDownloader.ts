@@ -97,7 +97,7 @@ export class YtDlpDownloader implements Downloader {
   /** `input` is either [url] for a fresh extraction or ["--load-info-json", path] to reuse one. */
   private buildArgs(input: string[], outputTemplate: string): string[] {
     const fmt = this.cfg.AUDIO_FORMAT;
-    return [
+    const args = [
       ...input,
       // Prefer YouTube's audio-only stream in the target container (copied, not re-encoded);
       // fall back to bestaudio (re-encoded to the target format) only when none exists.
@@ -118,6 +118,13 @@ export class YtDlpDownloader implements Downloader {
       outputTemplate,
       ...this.buildBaseArgs(),
     ];
+    // For MP4/m4a, write the moov atom at the front (faststart). Every listener joins mid-song and
+    // seeks to the live position; with moov-at-end the browser must first fetch the file tail,
+    // stalling the start. faststart lets the seek begin immediately.
+    if (fmt === "m4a" || fmt === "mp4") {
+      args.push("--postprocessor-args", "ExtractAudio:-movflags +faststart");
+    }
+    return args;
   }
 
   /** Args shared by probe + download so YouTube sees the same client for both. */

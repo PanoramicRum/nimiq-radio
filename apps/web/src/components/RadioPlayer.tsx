@@ -8,8 +8,11 @@ import { TapToListen } from "./TapToListen";
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
 const CORRECT_EVERY_MS = 2000; // how often we nudge toward the server position
-const HARD_SEEK_SEC = 0.75; // drift beyond this -> jump
-const NUDGE_SEC = 0.12; // drift beyond this (but under hard-seek) -> playbackRate nudge
+const HARD_SEEK_SEC = 1.25; // drift beyond this -> jump (audible skip, so kept rare)
+const NUDGE_SEC = 0.2; // deadband: drift under this is ignored; above (but under hard-seek) -> gentle nudge
+const RATE_SLOW = 0.985; // ahead of server -> slow down ~1.5% (gentle; ±3% was an audible pitch wobble)
+const RATE_FAST = 1.015; // behind server -> speed up ~1.5%
+const VISIBILITY_RESEEK_SEC = 0.5; // on tab/app resume, only hard-seek if drift exceeds this
 
 /**
  * One persistent <audio> kept aligned to the server clock.
@@ -100,9 +103,9 @@ export function RadioPlayer({
         }
         audio.playbackRate = 1;
       } else if (drift > NUDGE_SEC) {
-        audio.playbackRate = 0.97; // ahead -> slow down
+        audio.playbackRate = RATE_SLOW; // ahead -> slow down gently
       } else if (drift < -NUDGE_SEC) {
-        audio.playbackRate = 1.03; // behind -> speed up
+        audio.playbackRate = RATE_FAST; // behind -> speed up gently
       } else {
         audio.playbackRate = 1;
       }
@@ -142,10 +145,15 @@ export function RadioPlayer({
     };
   }, []);
 
-  // Re-align immediately when the tab/app becomes visible again.
+  // Re-align when the tab/app becomes visible again — but only hard-seek if we actually drifted
+  // far while away; small drift is left to the gentle loop so resuming isn't an audible jump.
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible" && startedRef.current) hardSeek();
+      if (document.visibilityState !== "visible" || !startedRef.current) return;
+      const audio = audioRef.current;
+      const target = targetSec();
+      if (!audio || target === null) return;
+      if (Math.abs(audio.currentTime - target) > VISIBILITY_RESEEK_SEC) hardSeek();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);

@@ -31,6 +31,7 @@ const WATCHDOG_MS = 40_000;
 const FALLBACK_POLL_MS = 5_000;
 const MAX_BACKOFF_MS = 15_000;
 const MAX_SAMPLES = 12;
+const OFFSET_DEADBAND_MS = 25; // ignore sub-deadband offset jitter so it doesn't churn drift correction
 
 /**
  * Real-time radio connection: WebSocket-first with a polling fallback.
@@ -191,8 +192,13 @@ export class RadioClient {
       const sample = offsetFromProbe(msg.t0, msg.t1, msg.t2, Date.now());
       this.samples.push(sample);
       if (this.samples.length > MAX_SAMPLES) this.samples.shift();
-      this.offsetMs = bestOffset(this.samples);
-      this.emit();
+      // Hysteresis: only propagate a meaningfully changed offset, so probe-to-probe jitter doesn't
+      // re-trigger the player's drift correction every 30s.
+      const next = bestOffset(this.samples);
+      if (Math.abs(next - this.offsetMs) > OFFSET_DEADBAND_MS) {
+        this.offsetMs = next;
+        this.emit();
+      }
     }
     // "ping": nothing to do — lastMsgAt was already refreshed.
   }
