@@ -152,6 +152,55 @@ export function RadioPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Media Session: lock-screen now-playing + background continuity ──
+  // Declaring an active media session is what lets audio continue across track changes while the
+  // phone is locked: without it the next track's play() is blocked by the autoplay policy in the
+  // background. It also surfaces the title / cover / play-pause on the lock screen.
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    if (!current) {
+      navigator.mediaSession.metadata = null;
+      return;
+    }
+    const artwork = current.coverUrl ? [{ src: `${location.origin}${current.coverUrl}`, sizes: "512x512" }] : [];
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: current.title,
+        artist: current.isRadio ? "Added by the radio" : current.author ?? "",
+        album: current.album ?? "Nimiq Radio",
+        artwork,
+      });
+    } catch {
+      /* MediaMetadata unsupported */
+    }
+  }, [current?.id, current?.coverUrl, current?.title, current?.author, current?.album, current?.isRadio]);
+
+  // Keep the OS playback state in sync (drives lock-screen controls + background-audio privileges).
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.playbackState = !current ? "none" : playing ? "playing" : "paused";
+  }, [playing, current]);
+
+  // Lock-screen / headset play-pause controls.
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    const ms = navigator.mediaSession;
+    const set = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
+      try {
+        ms.setActionHandler(action, handler);
+      } catch {
+        /* action unsupported on this platform */
+      }
+    };
+    set("play", () => void handleResume());
+    set("pause", () => audioRef.current?.pause());
+    return () => {
+      set("play", null);
+      set("pause", null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleTap() {
     const audio = audioRef.current;
     if (!audio) return;
