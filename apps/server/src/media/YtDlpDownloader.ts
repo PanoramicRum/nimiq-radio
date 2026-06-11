@@ -240,11 +240,52 @@ export class YtDlpDownloader implements Downloader {
           resolve({ stdout, stderr });
           return;
         }
-        const tail = stderr.trim().split("\n").slice(-3).join(" ");
-        reject(new DownloadError(`yt-dlp exited with code ${code}. ${tail}`.trim()));
+        // Keep the full reason (e.g. YouTube's giant geo-block country list) in the server log;
+        // hand the user one short, friendly line.
+        this.log.warn({ code, stderr: stderr.trim().split("\n").slice(-5).join("\n") }, "yt-dlp failed");
+        reject(new DownloadError(friendlyDownloadError(stderr)));
       });
     });
   }
+}
+
+/**
+ * Map raw yt-dlp stderr to a short, user-facing reason. yt-dlp dumps verbose detail (a geo-block
+ * lists every allowed country, etc.) that we never want to show a listener — the full text stays in
+ * the server log. Ordered most-specific first; falls back to a generic line.
+ */
+export function friendlyDownloadError(stderr: string): string {
+  const s = stderr.toLowerCase();
+  const has = (...needles: string[]): boolean => needles.some((n) => s.includes(n));
+
+  if (has("available in your country", "in your country", "blocked it in your", "not available in your location")) {
+    return "This video isn't available in the radio's region.";
+  }
+  if (has("confirm your age", "age-restricted", "inappropriate for some users")) {
+    return "This video is age-restricted, so it can't be added.";
+  }
+  if (has("members-only", "join this channel", "available to this channel")) {
+    return "This is a members-only video.";
+  }
+  if (has("private video")) {
+    return "This video is private.";
+  }
+  if (has("premiere", "this live event", "is upcoming")) {
+    return "This video hasn't premiered yet.";
+  }
+  if (has("copyright")) {
+    return "This video is blocked on copyright grounds.";
+  }
+  if (has("video unavailable", "has been removed", "no longer available", "been terminated", "is not available", "removed by the uploader")) {
+    return "This video is unavailable or has been removed.";
+  }
+  if (has("confirm you", "sign in to confirm", "not a bot")) {
+    return "YouTube is verifying the server right now — please try again in a moment.";
+  }
+  if (has("sign in", "log in", "login required")) {
+    return "This video requires sign-in and can't be added.";
+  }
+  return "Couldn't fetch that video — it may be unavailable, private, or region-restricted. Try a different link.";
 }
 
 /** True only if the cookies file has at least one non-comment, non-blank line. */

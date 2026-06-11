@@ -19,7 +19,7 @@ const EnvSchema = z.object({
 
   // Media pipeline
   YTDLP_BIN: z.string().default("yt-dlp"),
-  MAX_DURATION_SEC: z.coerce.number().int().positive().default(1200), // download cap; must be >= MAX_SONG_SEC
+  MAX_DURATION_SEC: z.coerce.number().int().positive().default(1500), // download cap (25 min); must be >= MAX_SONG_SEC
   MAX_FILESIZE: z.string().default("100M"),
   // Native container to keep — "m4a" downloads YouTube's audio-only AAC stream and copies it
   // (no costly re-encode). yt-dlp only re-encodes if no audio-only source exists for the video.
@@ -77,7 +77,7 @@ const EnvSchema = z.object({
   // category is too blunt a filter. Length + not-live still gate; AcoustID identifies the song.
   GATE_REQUIRE_MUSIC_CATEGORY: boolFromEnv(false),
   MIN_SONG_SEC: z.coerce.number().int().positive().default(45),
-  MAX_SONG_SEC: z.coerce.number().int().positive().default(1200), // 20 min
+  MAX_SONG_SEC: z.coerce.number().int().positive().default(1500), // 25 min
 
   // ── Always-on Creative-Commons filler (Phase 8) ──
   // The radio plays public-domain (CC0) filler whenever no user song is queued, so it is

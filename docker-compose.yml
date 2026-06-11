@@ -32,7 +32,7 @@ services:
       PLAYER_CLIENT: "${PLAYER_CLIENT:-default,web_safari,tv}"
       AUDIO_FORMAT: "${AUDIO_FORMAT:-m4a}"
       COOKIES_FILE: /run/secrets/cookies.txt
-      MAX_DURATION_SEC: "${MAX_DURATION_SEC:-1200}"
+      MAX_DURATION_SEC: "${MAX_DURATION_SEC:-1500}"
       MAX_FILESIZE: 100M
       AUDIO_BITRATE: 192K
       DOWNLOAD_CONCURRENCY: "2"
@@ -50,7 +50,7 @@ services:
       ACOUSTID_API_KEY: "${ACOUSTID_API_KEY:-}"
       CONTENT_GATE_ENABLED: "${CONTENT_GATE_ENABLED:-true}"
       MIN_SONG_SEC: "${MIN_SONG_SEC:-45}"
-      MAX_SONG_SEC: "${MAX_SONG_SEC:-1200}"
+      MAX_SONG_SEC: "${MAX_SONG_SEC:-1500}"
     volumes:
       # Empty file = no cookies (the downloader skips --cookies for an empty file).
       # Replace with a real Netscape cookies.txt from a throwaway account if YouTube
