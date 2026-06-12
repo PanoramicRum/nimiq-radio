@@ -6,11 +6,14 @@
 
 ## Copyright & source content
 
-Nimiq Radio accepts links to third-party media (currently YouTube), downloads and
-transcodes the audio server-side, and serves it for shared playback.
+Nimiq Radio accepts links to third-party media (YouTube, SoundCloud, Bandcamp, and Audius),
+downloads and transcodes the audio server-side, and serves it for shared playback.
 
-- **Downloading from YouTube generally violates the YouTube Terms of Service**, and the
-  submitted content is frequently protected by copyright.
+- **Downloading from YouTube / SoundCloud / Bandcamp generally violates those platforms' Terms of
+  Service**, and the submitted content is frequently protected by copyright.
+- **Audius** is the cleanest of the supported sources: an open, artist-opt-in protocol whose free
+  public API is intended for third-party playback. It is still the operator's responsibility to
+  respect any per-track licensing.
 - No configuration or code change removes this risk. Paying NIM to submit a song does **not**
   grant any license to the underlying content.
 

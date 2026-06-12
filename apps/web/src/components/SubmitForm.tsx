@@ -121,7 +121,7 @@ export function SubmitForm({ config, onSubmitted }: { config: AppConfig | null; 
           type="url"
           inputMode="url"
           autoComplete="off"
-          placeholder="Paste a YouTube link to add a song…"
+          placeholder="Paste a YouTube, SoundCloud, Bandcamp, or Audius link…"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={busy || pending !== null}

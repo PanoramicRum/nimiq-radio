@@ -18,6 +18,13 @@ RUN python3 -m venv /opt/ytdlp \
          "yt-dlp[default]${YTDLP_VERSION:+==${YTDLP_VERSION}}" \
          bgutil-ytdlp-pot-provider
 
+# Vendored fix for yt-dlp's Audius extractor: Audius added an artwork `mirrors` LIST that makes the
+# extractor emit a list-valued thumbnail, crashing every Audius download ("'list' object has no
+# attribute 'startswith'"). Idempotent + non-fatal; no-ops once a yt-dlp release ships the upstream
+# fix. See deploy/patches/audius-thumbnails.py.
+COPY deploy/patches/audius-thumbnails.py /tmp/audius-thumbnails.py
+RUN /opt/ytdlp/bin/python /tmp/audius-thumbnails.py
+
 # Deno >= 2 — the only JS runtime yt-dlp enables by default; required for YouTube.
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
 
