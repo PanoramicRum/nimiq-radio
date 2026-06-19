@@ -11,6 +11,7 @@
     "dev": "pnpm --parallel --filter @radio/server --filter @radio/web dev",
     "dev:server": "pnpm --filter @radio/server dev",
     "dev:web": "pnpm --filter @radio/web dev",
+    "dev:bot": "pnpm --filter @radio/bot dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
