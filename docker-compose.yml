@@ -116,8 +116,38 @@ services:
     networks:
       - radionet
 
+  # Telegram community bot (apps/bot). Polls the server's public /api/state and posts to a
+  # community group. Kept OUT of the SSRF-hardened `server` container: the server must never
+  # originate outbound calls like api.telegram.org. Long-polling is outbound-only -> no ports.
+  bot:
+    build:
+      context: .
+      dockerfile: apps/bot/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"
+      TELEGRAM_CHAT_ID: "${TELEGRAM_CHAT_ID:-}"
+      RADIO_PUBLIC_URL: "${RADIO_PUBLIC_URL:-https://radio.nimiqapps.com}"
+      # Internal compose DNS; reaches `server` over radionet (intra-stack egress is allowed).
+      RADIO_API_URL: "http://server:3000"
+      POLL_INTERVAL_MS: "${POLL_INTERVAL_MS:-30000}"
+      EMPTY_THRESHOLD_MIN: "${EMPTY_THRESHOLD_MIN:-60}"
+      STATE_FILE_PATH: /data/bot-state.json
+      QUEUE_DISPLAY_LIMIT: "${QUEUE_DISPLAY_LIMIT:-10}"
+    depends_on:
+      - server
+    networks:
+      - radionet
+    volumes:
+      - bot-state:/data
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 128
+
 volumes:
   tracks:
+  bot-state:
 
 networks:
   # Dedicated bridge with a PINNED subnet so the host egress rules in
