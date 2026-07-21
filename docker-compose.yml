@@ -30,6 +30,13 @@ services:
       PO_TOKEN_BASE_URL: http://bgutil:4416
       # "default" exposes audio-only m4a (fast); web_safari,tv kept as a fallback chain.
       PLAYER_CLIENT: "${PLAYER_CLIENT:-default,web_safari,tv}"
+      # Self-update yt-dlp on container start (see apps/server/docker-entrypoint.sh);
+      # YTDLP_CHANNEL=nightly tracks pre-releases when stable lags a YouTube change.
+      YTDLP_AUTO_UPDATE: "${YTDLP_AUTO_UPDATE:-true}"
+      YTDLP_CHANNEL: "${YTDLP_CHANNEL:-stable}"
+      # YouTube canary: periodic metadata-only probe surfaced at /healthz + /metrics (0 = off).
+      YT_CANARY_INTERVAL_MS: "${YT_CANARY_INTERVAL_MS:-21600000}"
+      YT_CANARY_URL: "${YT_CANARY_URL:-https://www.youtube.com/watch?v=jNQXAC9IVRw}"
       AUDIO_FORMAT: "${AUDIO_FORMAT:-m4a}"
       COOKIES_FILE: /run/secrets/cookies.txt
       MAX_DURATION_SEC: "${MAX_DURATION_SEC:-1500}"

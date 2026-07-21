@@ -42,8 +42,35 @@ export interface Downloader {
   download(canonicalUrl: string, opts?: { signal?: AbortSignal; infoJsonPath?: string }): Promise<DownloadResult>;
 }
 
+/**
+ * Machine-readable failure category carried alongside the user-facing message.
+ * Two kinds are operator-actionable, not link problems: "extractor_stale" (yt-dlp can no
+ * longer parse the site — update it) and "blocked_403" (YouTube refuses this server's
+ * requests — typically a datacenter-IP bot flag; refresh cookies / PO-token setup).
+ */
+export type DownloadFailureKind =
+  | "geo_blocked"
+  | "age_restricted"
+  | "members_only"
+  | "private"
+  | "premiere"
+  | "copyright"
+  | "removed"
+  | "bot_check"
+  | "sign_in_required"
+  | "extractor_stale"
+  | "blocked_403"
+  | "timeout"
+  | "aborted"
+  | "spawn_failed"
+  | "no_output"
+  | "unknown";
+
 export class DownloadError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly kind: DownloadFailureKind = "unknown",
+  ) {
     super(message);
     this.name = "DownloadError";
   }

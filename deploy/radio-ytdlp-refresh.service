@@ -1,0 +1,18 @@
+# Restarts the Nimiq Radio server container so its entrypoint self-updates yt-dlp.
+# Triggered weekly by radio-ytdlp-refresh.timer (not enabled at boot by itself). Install:
+#
+#   sudo install -m 0755 deploy/radio-ytdlp-refresh.sh      /usr/local/sbin/radio-ytdlp-refresh.sh
+#   sudo install -m 0644 deploy/radio-ytdlp-refresh.service /etc/systemd/system/radio-ytdlp-refresh.service
+#   sudo install -m 0644 deploy/radio-ytdlp-refresh.timer   /etc/systemd/system/radio-ytdlp-refresh.timer
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now radio-ytdlp-refresh.timer
+#
+# (Edit REPO_DIR in the script before installing.)
+[Unit]
+Description=Nimiq Radio yt-dlp refresh (restart server container to self-update)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/radio-ytdlp-refresh.sh
