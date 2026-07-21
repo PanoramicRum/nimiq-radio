@@ -119,6 +119,81 @@ Notes:
   host, which proxies to the container over IPv4 loopback). The script's v6 section is a no-op unless
   you deliberately enable IPv6 on `radionet`.
 
+## Keeping yt-dlp fresh (important!)
+
+YouTube breaks stale yt-dlp versions within **weeks**, silently, between your deploys — this took
+the radio's YouTube support down in July 2026. Two mechanisms keep it current:
+
+1. **Self-update on container start** (`apps/server/docker-entrypoint.sh`): every server start pulls
+   the latest yt-dlp release (graceful offline fallback; `YTDLP_AUTO_UPDATE=false` in `.env` opts
+   out, `YTDLP_CHANNEL=nightly` tracks pre-releases). So recovering from a YouTube breakage is just:
+   `docker compose restart server`.
+2. **Weekly scheduled refresh** so quiet weeks with no deploys stay fresh too (restarts the
+   server to trigger the self-update, and re-pulls the bgutil sidecar so the PO-token
+   provider/plugin pair stays in step):
+
+```bash
+# Edit REPO_DIR at the top of deploy/radio-ytdlp-refresh.sh first (your checkout path), then:
+sudo install -m 0755 deploy/radio-ytdlp-refresh.sh      /usr/local/sbin/radio-ytdlp-refresh.sh
+sudo install -m 0644 deploy/radio-ytdlp-refresh.service /etc/systemd/system/radio-ytdlp-refresh.service
+sudo install -m 0644 deploy/radio-ytdlp-refresh.timer   /etc/systemd/system/radio-ytdlp-refresh.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now radio-ytdlp-refresh.timer
+systemctl list-timers | grep radio     # confirm it's scheduled
+```
+
+Detection: the server probes a known-stable video every 6 h (`YT_CANARY_INTERVAL_MS`) through the
+real pipeline. Check it any time:
+
+```bash
+curl -s 127.0.0.1:3000/healthz          # {"status":"ok","youtube":{"ok":true,...}}
+curl -s 127.0.0.1:3000/metrics | grep -E 'radio_(youtube_canary|download_failures)'
+docker compose logs server | grep -E 'YOUTUBE CANARY FAILING|STALE YT-DLP|YOUTUBE BLOCKING'   # empty = healthy
+```
+
+## YouTube stopped working — runbook
+
+Symptom: YouTube links fail (users see an error) while SoundCloud/Bandcamp/Audius still work,
+`/healthz` shows `youtube.ok:false`, or the logs show `YOUTUBE CANARY FAILING` / `STALE YT-DLP` /
+`YOUTUBE BLOCKING (403)`.
+
+The logged `kind` tells you which branch you're in: `extractor_stale` → YouTube changed their
+player and yt-dlp needs an update (steps 2 + escalation 1). `blocked_403` or `bot_check` →
+YouTube has flagged the server's (datacenter) IP; updating helps, but **cookies are the real
+fix** — jump to escalation 2. (Reference point: an old yt-dlp on a residential IP with no
+cookies works fine; the same setup on a datacenter IP gets 403s. IP reputation matters more
+than version for this branch.)
+
+```bash
+# 1) Grab the real yt-dlp error + current version (evidence before you change anything):
+docker compose logs --since 48h server | grep -B1 -A4 '"yt-dlp failed"' | tail -60
+docker compose exec server yt-dlp --version
+docker compose exec server sh -c 'curl -sS -m5 http://bgutil:4416/ping; echo'   # sidecar alive?
+
+# 2) Restart the server — the entrypoint self-updates yt-dlp to the latest release:
+docker compose restart server
+docker compose logs server | grep "entrypoint: yt-dlp"    # confirm the new version
+
+# 3) Re-test:
+curl -sS -m 120 -X POST http://127.0.0.1:3000/api/prepare-song \
+  -H 'content-type: application/json' \
+  -d '{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
+```
+
+Still broken? Escalate in order:
+
+1. **Nightly channel** — the fix may not have hit a stable release yet: set `YTDLP_CHANNEL=nightly`
+   in `.env`, then `docker compose --profile prod up -d` (recreates with the new env). Revert once a
+   stable release catches up.
+2. **Refresh cookies** from a throwaway Google account (Netscape `cookies.txt`, exported from a
+   private/incognito session so YouTube doesn't rotate them). Overwrite `secrets/cookies.txt`
+   **in place** (`cat new-cookies.txt > secrets/cookies.txt` — it's a single-file bind mount, so
+   replacing the inode with `mv`/`cp` breaks the mount). Picked up automatically on the next
+   download; no restart needed.
+3. **Player-client tweak** — if step 1's stderr blames a specific client, reorder/trim
+   `PLAYER_CLIENT` in `.env` (default `default,web_safari,tv`), then `docker compose --profile prod up -d`.
+4. **bgutil sidecar refresh** — if stderr mentions PO tokens: `docker compose pull bgutil && docker compose --profile prod up -d`.
+
 ## Updating
 
 ```bash
@@ -127,6 +202,12 @@ docker compose --profile prod up -d --build
 # If apps/server/filler/manifest.json changed, refresh the filler library too:
 docker compose --profile init run --rm filler-fetch
 ```
+
+> **Note:** `--build` does **not** refresh yt-dlp by itself — the Docker layer that pip-installs it
+> is cached until the Dockerfile text changes. That's fine: the entrypoint self-updates yt-dlp on
+> every container start anyway. For a truly fresh *image* (e.g. new Deno/ffmpeg), use
+> `docker compose --profile prod build --no-cache server`, or pin a version explicitly with
+> `--build-arg YTDLP_VERSION=2026.7.4` (also busts the layer).
 
 ## Notes
 

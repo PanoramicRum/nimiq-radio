@@ -1,0 +1,13 @@
+# Weekly trigger for radio-ytdlp-refresh.service (see that file for install steps).
+# Persistent=true catches up after downtime; the randomized delay avoids restarting
+# at the exact same second as any other weekly job on the host.
+[Unit]
+Description=Weekly Nimiq Radio yt-dlp refresh
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target

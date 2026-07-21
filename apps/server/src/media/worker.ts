@@ -6,7 +6,8 @@ import type { FastifyBaseLogger } from "fastify";
 import type { QueueItem } from "@radio/shared";
 
 import type { Config } from "../config";
-import { ContentRejectedError, type Downloader, type DownloadResult, type ProbeInfo } from "./Downloader";
+import { downloadFailures } from "../metrics";
+import { ContentRejectedError, DownloadError, type Downloader, type DownloadResult, type ProbeInfo } from "./Downloader";
 import { evaluateContent } from "./ContentGate";
 import { resolveCoverArt } from "./CoverArtResolver";
 import { createMusicTagger, type MusicTagger } from "./MusicTagger";
@@ -49,12 +50,24 @@ export class MediaWorker {
   }
 
   /**
+   * Metadata-only probe through the bounded download queue — used by the YouTube canary.
+   * Success = the extractor still works; the probe's temp info-json is discarded.
+   * Throws DownloadError (with .kind) on failure.
+   */
+  async probeOnly(canonicalUrl: string): Promise<void> {
+    const info = (await this.queue.add(() => this.downloader.probe(canonicalUrl), {
+      throwOnTimeout: true,
+    })) as ProbeInfo;
+    if (info.infoJsonPath) await unlink(info.infoJsonPath).catch(() => {});
+  }
+
+  /**
    * Validate → (gate: probe + reject non-songs BEFORE downloading) → download →
    * correct metadata via fingerprint → return the prepared track.
    * Throws SourceValidationError (bad URL), ContentRejectedError (not a song), DownloadError.
    */
   async prepare(rawUrl: string): Promise<PreparedTrack> {
-    const { canonicalUrl } = validateSource(rawUrl);
+    const { canonicalUrl, source } = validateSource(rawUrl);
 
     let infoJsonPath: string | undefined;
     try {
@@ -94,6 +107,13 @@ export class MediaWorker {
         thumbnailUrl: result.thumbnail,
         createdAt: new Date().toISOString(),
       };
+    } catch (err) {
+      // Per-source failure metric: a rising youtube/extractor_stale series while soundcloud
+      // stays clean is exactly the "yt-dlp needs an update" signature.
+      if (err instanceof DownloadError) {
+        downloadFailures.inc({ source, kind: err.kind });
+      }
+      throw err;
     } finally {
       if (infoJsonPath) await unlink(infoJsonPath).catch(() => {});
     }

@@ -10,8 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #  - "[default]" pulls yt-dlp-ejs (the JS challenge solver) and sidesteps PEP 668,
 #  - bgutil-ytdlp-pot-provider is the CLIENT plugin that talks to the bgutil sidecar
 #    (the sidecar alone does nothing without it),
-#  - YouTube breaks older versions fast, so default to the latest at build time.
-#    Pin by passing --build-arg YTDLP_VERSION=2026.xx.xx for reproducible builds.
+#  - YouTube breaks older versions fast, so default to the latest at build time AND
+#    self-update on every container start (see docker-entrypoint.sh; the venv is
+#    chowned to the app user below to allow that). For a fully reproducible image,
+#    pass --build-arg YTDLP_VERSION=2026.xx.xx and set YTDLP_AUTO_UPDATE=false.
 ARG YTDLP_VERSION=
 RUN python3 -m venv /opt/ytdlp \
     && /opt/ytdlp/bin/pip install --no-cache-dir -U \
@@ -21,9 +23,16 @@ RUN python3 -m venv /opt/ytdlp \
 # Vendored fix for yt-dlp's Audius extractor: Audius added an artwork `mirrors` LIST that makes the
 # extractor emit a list-valued thumbnail, crashing every Audius download ("'list' object has no
 # attribute 'startswith'"). Idempotent + non-fatal; no-ops once a yt-dlp release ships the upstream
-# fix. See deploy/patches/audius-thumbnails.py.
-COPY deploy/patches/audius-thumbnails.py /tmp/audius-thumbnails.py
-RUN /opt/ytdlp/bin/python /tmp/audius-thumbnails.py
+# fix. Kept at a stable in-image path because the entrypoint re-applies it after every runtime
+# yt-dlp self-update (an upgrade overwrites the patched file). See deploy/patches/audius-thumbnails.py.
+COPY deploy/patches/audius-thumbnails.py /opt/ytdlp/patches/audius-thumbnails.py
+RUN /opt/ytdlp/bin/python /opt/ytdlp/patches/audius-thumbnails.py
+
+# The app user owns the venv so the entrypoint's runtime self-update works unprivileged.
+# Chowned HERE — in the stable pre-source section, right after the venv's content is final —
+# so the copied-up layer is built once and cached; chowning after the app-source COPY would
+# re-duplicate the whole venv into a fresh layer on every source edit.
+RUN useradd --create-home --uid 10001 app && chown -R app:app /opt/ytdlp
 
 # Deno >= 2 — the only JS runtime yt-dlp enables by default; required for YouTube.
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
@@ -54,12 +63,15 @@ ENV NODE_ENV=production \
     TRACKS_DIR=/tmp/radio-tracks
 
 RUN mkdir -p /tmp/radio-tracks \
-    && useradd --create-home --uid 10001 app \
     && chown -R app:app /app /tmp/radio-tracks
+COPY --chmod=0755 apps/server/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 USER app
 
 WORKDIR /app/apps/server
 EXPOSE 3000
-# Run tsx directly — no pnpm/corepack at runtime (that did a flaky network download on
-# every container start). Deps (incl. tsx) are already installed at build time.
+# The entrypoint self-updates yt-dlp (see docker-entrypoint.sh), then execs the CMD — tsx
+# directly, no pnpm/corepack at runtime (that did a flaky network download on every container
+# start; deps incl. tsx are already installed at build time). CMD stays overridable so
+# `docker compose run server sh` and a compose `command:` key behave normally.
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node_modules/.bin/tsx", "src/index.ts"]

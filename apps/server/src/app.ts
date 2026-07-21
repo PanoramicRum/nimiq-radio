@@ -17,6 +17,7 @@ import { InMemoryStore, type RadioStore } from "./engine/store";
 import { FillerLibrary } from "./filler/FillerLibrary";
 import { startCleanup } from "./fs/cleanup";
 import { isAudioFilename } from "./fs/trackStore";
+import { startYtCanary } from "./media/canary";
 import { MediaWorker } from "./media/worker";
 import { BoostRegistry } from "./payments/BoostRegistry";
 import { PaymentsStore } from "./payments/PaymentsStore";
@@ -143,8 +144,13 @@ export async function buildApp(): Promise<FastifyInstance> {
     return pinned;
   });
 
+  // YouTube canary: periodic probe-only check through the worker's bounded queue, so a
+  // stale-yt-dlp breakage is caught (log marker + /healthz + metrics) before users report it.
+  const canary = startYtCanary(config, app.log, (url) => worker.probeOnly(url));
+
   app.addHook("onClose", async () => {
     stopCleanup();
+    canary.stop();
     db?.close();
   });
 
@@ -165,7 +171,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     app.log,
   );
 
-  registerHealthRoute(app);
+  registerHealthRoute(app, { youtube: canary.state });
   registerMetricsRoute(app);
   registerConfigRoute(app);
   registerStateRoute(app, engine);

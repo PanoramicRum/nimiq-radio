@@ -7,7 +7,7 @@ import path from "node:path";
 import type { FastifyBaseLogger } from "fastify";
 
 import type { Config } from "../config";
-import { DownloadError, type DownloadResult, type Downloader, type ProbeInfo } from "./Downloader";
+import { DownloadError, type DownloadFailureKind, type DownloadResult, type Downloader, type ProbeInfo } from "./Downloader";
 
 /**
  * Downloads + transcodes audio to MP3 via the yt-dlp binary (which drives ffmpeg).
@@ -78,6 +78,7 @@ export class YtDlpDownloader implements Downloader {
       // producing no file. Treat that as a clean failure, not a crash.
       throw new DownloadError(
         "No audio file was produced. The video may be a livestream, exceed the duration/size limit, or be unavailable.",
+        "no_output",
       );
     }
 
@@ -221,7 +222,7 @@ export class YtDlpDownloader implements Downloader {
         if (settled) return;
         settled = true;
         cleanup();
-        reject(new DownloadError(`Failed to start yt-dlp: ${err.message}`));
+        reject(new DownloadError(`Failed to start yt-dlp: ${err.message}`, "spawn_failed"));
       });
 
       child.on("close", (code) => {
@@ -229,11 +230,11 @@ export class YtDlpDownloader implements Downloader {
         settled = true;
         cleanup();
         if (timedOut) {
-          reject(new DownloadError(`Download timed out after ${this.cfg.DOWNLOAD_TIMEOUT_MS}ms.`));
+          reject(new DownloadError(`Download timed out after ${this.cfg.DOWNLOAD_TIMEOUT_MS}ms.`, "timeout"));
           return;
         }
         if (signal?.aborted) {
-          reject(new DownloadError("Download aborted."));
+          reject(new DownloadError("Download aborted.", "aborted"));
           return;
         }
         if (code === 0) {
@@ -242,50 +243,112 @@ export class YtDlpDownloader implements Downloader {
         }
         // Keep the full reason (e.g. YouTube's giant geo-block country list) in the server log;
         // hand the user one short, friendly line.
-        this.log.warn({ code, stderr: stderr.trim().split("\n").slice(-5).join("\n") }, "yt-dlp failed");
-        reject(new DownloadError(friendlyDownloadError(stderr)));
+        const { kind, message } = classifyDownloadError(stderr);
+        const stderrTail = stderr.trim().split("\n").slice(-5).join("\n");
+        // Operator-actionable kinds log at error with a stable marker so they stand out in
+        // `docker compose logs server`; everything else is a per-video problem → warn.
+        if (kind === "extractor_stale") {
+          this.log.error(
+            { code, kind, stderr: stderrTail },
+            "yt-dlp failed — LIKELY STALE YT-DLP. Fix: `docker compose restart server` (self-updates on start) or rebuild with --no-cache. See DEPLOY.md.",
+          );
+        } else if (kind === "blocked_403") {
+          this.log.error(
+            { code, kind, stderr: stderrTail },
+            "yt-dlp failed — YOUTUBE BLOCKING (403). Likely datacenter-IP bot flag: refresh cookies (throwaway account) and update yt-dlp. See DEPLOY.md.",
+          );
+        } else {
+          this.log.warn({ code, kind, stderr: stderrTail }, "yt-dlp failed");
+        }
+        reject(new DownloadError(message, kind));
       });
     });
   }
 }
 
 /**
- * Map raw yt-dlp stderr to a short, user-facing reason. yt-dlp dumps verbose detail (a geo-block
- * lists every allowed country, etc.) that we never want to show a listener — the full text stays in
- * the server log. Ordered most-specific first; falls back to a generic line.
+ * Map raw yt-dlp stderr to a short, user-facing reason plus a machine-readable kind. yt-dlp dumps
+ * verbose detail (a geo-block lists every allowed country, etc.) that we never want to show a
+ * listener — the full text stays in the server log. Ordered most-specific first: video-level
+ * reasons (private/removed/geo/…) must win over the broad extractor-breakage needles below them,
+ * which in turn win over the generic fallback.
  */
-export function friendlyDownloadError(stderr: string): string {
+export function classifyDownloadError(stderr: string): { kind: DownloadFailureKind; message: string } {
   const s = stderr.toLowerCase();
   const has = (...needles: string[]): boolean => needles.some((n) => s.includes(n));
 
+  // This classifier sees stderr from ALL sources (yt-dlp tags lines with the extractor, e.g.
+  // "[youtube]", "[Bandcamp]"), so operator-facing messages must not claim "YouTube broke —
+  // use Bandcamp instead" when it was Bandcamp's extractor that failed.
+  const isYoutube = s.includes("[youtube]");
+  const site = isYoutube ? "YouTube" : "The source site";
+  const staleMessage = `${site} changed something on their side and the radio's downloader needs an update — this isn't a problem with your link.${isYoutube ? " SoundCloud, Bandcamp and Audius links still work." : " Links from other sources may still work."}`;
+
+  // Unambiguous extractor-breakage signatures FIRST: these exact phrases never appear in
+  // video-level errors, and some would otherwise be shadowed by broader video-level needles
+  // ("Requested format is not available" contains "is not available" → would match "removed";
+  // "not available on this app" — the classic deprecated-player-client symptom — likewise).
+  if (
+    has(
+      "failed to extract any player response",
+      "requested format is not available",
+      "no video formats",
+      "nsig extraction failed",
+      "not available on this app",
+    )
+  ) {
+    return { kind: "extractor_stale", message: staleMessage };
+  }
   if (has("available in your country", "in your country", "blocked it in your", "not available in your location")) {
-    return "This video isn't available in the radio's region.";
+    return { kind: "geo_blocked", message: "This video isn't available in the radio's region." };
   }
   if (has("confirm your age", "age-restricted", "inappropriate for some users")) {
-    return "This video is age-restricted, so it can't be added.";
+    return { kind: "age_restricted", message: "This video is age-restricted, so it can't be added." };
   }
   if (has("members-only", "join this channel", "available to this channel")) {
-    return "This is a members-only video.";
+    return { kind: "members_only", message: "This is a members-only video." };
   }
   if (has("private video")) {
-    return "This video is private.";
+    return { kind: "private", message: "This video is private." };
   }
   if (has("premiere", "this live event", "is upcoming")) {
-    return "This video hasn't premiered yet.";
+    return { kind: "premiere", message: "This video hasn't premiered yet." };
   }
   if (has("copyright")) {
-    return "This video is blocked on copyright grounds.";
+    return { kind: "copyright", message: "This video is blocked on copyright grounds." };
   }
   if (has("video unavailable", "has been removed", "no longer available", "been terminated", "is not available", "removed by the uploader")) {
-    return "This video is unavailable or has been removed.";
+    return { kind: "removed", message: "This video is unavailable or has been removed." };
   }
   if (has("confirm you", "sign in to confirm", "not a bot")) {
-    return "YouTube is verifying the server right now — please try again in a moment.";
+    return { kind: "bot_check", message: "YouTube is verifying the server right now — please try again in a moment." };
   }
   if (has("sign in", "log in", "login required")) {
-    return "This video requires sign-in and can't be added.";
+    return { kind: "sign_in_required", message: "This video requires sign-in and can't be added." };
   }
-  return "Couldn't fetch that video — it may be unavailable, private, or region-restricted. Try a different link.";
+  // Broad extractor-breakage needles: these phrases CAN co-occur with video-level errors
+  // ("Unable to extract" trails many of them), so they sit BELOW every video-level reason and
+  // ABOVE only the generic fallback. Actionable by the operator (update yt-dlp), not the user.
+  if (has("unable to extract", "failed to extract", "player response", "po token", "po_token")) {
+    return { kind: "extractor_stale", message: staleMessage };
+  }
+  // The site answering 403 to an otherwise-valid request is the datacenter-IP bot flag (stale or
+  // missing cookies / PO tokens), not a property of the video. Operator-actionable.
+  if (has("http error 403", "403: forbidden", "403 forbidden")) {
+    return {
+      kind: "blocked_403",
+      message: `${site} is refusing the radio server's requests right now (HTTP 403) — this isn't a problem with your link. The server needs fresh cookies or an update.${isYoutube ? " Meanwhile SoundCloud, Bandcamp and Audius links still work." : ""}`,
+    };
+  }
+  return {
+    kind: "unknown",
+    message: "Couldn't fetch that video — it may be unavailable, private, or region-restricted. Try a different link.",
+  };
+}
+
+/** Back-compat wrapper: just the user-facing line. */
+export function friendlyDownloadError(stderr: string): string {
+  return classifyDownloadError(stderr).message;
 }
 
 /** True only if the cookies file has at least one non-comment, non-blank line. */

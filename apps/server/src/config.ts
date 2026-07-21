@@ -36,6 +36,18 @@ const EnvSchema = z.object({
   PLAYER_CLIENT: z.string().default("default,web_safari,tv"),
   COOKIES_FILE: z.string().optional(),
 
+  // ── YouTube canary ──
+  // Periodic metadata-only probe of a known-stable public video through the real pipeline
+  // (player_client, PO-token sidecar, cookies), so extractor breakage — stale yt-dlp after a
+  // YouTube-side change — is detected before users report it. 0 disables; empty string means
+  // "use the default" (the .env idiom for other optionals), NOT "disable". Capped at 2^31-1:
+  // Node clamps larger setInterval delays to 1 ms, which would probe continuously.
+  YT_CANARY_INTERVAL_MS: z.preprocess(
+    (v) => (v === undefined || v === "" ? undefined : v),
+    z.coerce.number().int().nonnegative().max(2_147_483_647).default(21_600_000), // 6 h
+  ),
+  YT_CANARY_URL: z.string().default("https://www.youtube.com/watch?v=jNQXAC9IVRw"),
+
   // Rate limiting (basic, even in Phase 1)
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(30),
   RATE_LIMIT_WINDOW: z.string().default("1 minute"),
