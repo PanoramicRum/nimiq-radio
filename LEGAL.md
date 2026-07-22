@@ -3,6 +3,12 @@
 > **Status: prototype.** Nimiq Radio is a hackathon/competition prototype, not a public
 > production service. Operating it publicly carries real legal risk (see below). Read this
 > before deploying it anywhere others can reach.
+>
+> **Demo deployment.** The current demo version (radio.nimiqapps.com) is operated for
+> **testing and demonstration purposes only**. There is **no intention to circumvent or go
+> against the terms of service of any media content provider**; it exists to demonstrate
+> Nimiq Pay Mini App payments around a shared listening experience. Content is fetched
+> transiently, never archived (see retention below), and is removed promptly on request.
 
 ## Copyright & source content
 
