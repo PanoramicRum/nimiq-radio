@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="blueBg" cx="100%" cy="100%" r="141%">
+      <stop offset="0%" stop-color="#260133"/>
+      <stop offset="100%" stop-color="#1F2348"/>
+    </radialGradient>
+    <radialGradient id="goldBg" cx="100%" cy="100%" r="141%">
+      <stop offset="0%" stop-color="#EC991C"/>
+      <stop offset="100%" stop-color="#E9B213"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#blueBg)"/>
+  <path d="M 326.5 62.4 A 206 206 0 0 1 449.6 185.5"
+      fill="none" stroke="#FFFFFF" stroke-width="17" stroke-linecap="round" opacity="0.85"/><path d="M 352.8 38.6 A 238 238 0 0 1 473.4 159.2"
+      fill="none" stroke="#FFFFFF" stroke-width="17" stroke-linecap="round" opacity="0.4"/><path d="M 185.5 449.6 A 206 206 0 0 1 62.4 326.5"
+      fill="none" stroke="#FFFFFF" stroke-width="17" stroke-linecap="round" opacity="0.85"/><path d="M 159.2 473.4 A 238 238 0 0 1 38.6 352.8"
+      fill="none" stroke="#FFFFFF" stroke-width="17" stroke-linecap="round" opacity="0.4"/>
+  <path d="M 419.94 245.50 A 21 21 0 0 1 419.94 266.50 L 347.06 392.72 A 21 21 0 0 1 328.88 403.22 L 183.12 403.22 A 21 21 0 0 1 164.94 392.72 L 92.06 266.50 A 21 21 0 0 1 92.06 245.50 L 164.94 119.28 A 21 21 0 0 1 183.12 108.78 L 328.88 108.78 A 21 21 0 0 1 347.06 119.28 Z" fill="url(#goldBg)"/>
+  <g transform="translate(164 187) scale(1.84)">
+  <g fill="#FFFFFF">
+    <rect x="30" y="14" width="7" height="56" rx="2"/>
+    <rect x="74" y="6"  width="7" height="56" rx="2"/>
+    <path d="M30 14 L81 5 L81 22 L30 31 Z"/>
+    <ellipse cx="26" cy="72" rx="13.5" ry="10" transform="rotate(-20 26 72)"/>
+    <ellipse cx="70" cy="64" rx="13.5" ry="10" transform="rotate(-20 70 64)"/>
+  </g></g>
+</svg>
